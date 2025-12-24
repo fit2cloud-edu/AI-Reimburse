@@ -1,0 +1,318 @@
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  font-size: 14px;
+  color: #303133;
+  background-color: #f5f7fa;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8abb2;
+}
+
+/* 过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 通用工具类 */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  .hidden-sm {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hidden-md {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .hidden-lg {
+    display: none !important;
+  }
+}
+
+/* 表单验证样式 */
+.validation-error {
+  border-color: #f56c6c !important;
+}
+
+.validation-error:focus {
+  border-color: #f56c6c !important;
+  box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+}
+
+.validation-warning {
+  border-color: #e6a23c !important;
+}
+
+.validation-warning:focus {
+  border-color: #e6a23c !important;
+  box-shadow: 0 0 0 2px rgba(230, 162, 60, 0.2);
+}
+
+.validation-error-text {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.validation-warning-text {
+  color: #e6a23c;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* 标记样式 */
+.error-marker {
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.warning-marker {
+  color: #e6a23c;
+  font-weight: bold;
+}
+
+.special-marker {
+  color: #409eff;
+  font-weight: bold;
+}
+
+/* 发票标签样式 */
+.error-tab {
+  border-color: #f56c6c !important;
+  background-color: #fef0f0 !important;
+  color: #f56c6c !important;
+}
+
+.warning-tab {
+  border-color: #e6a23c !important;
+  background-color: #fdf6ec !important;
+  color: #e6a23c !important;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 打印样式 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+  
+  .el-dialog {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}
+
+/* 高亮样式 */
+.highlight-error {
+  color: #f56c6c;
+  background-color: #fef0f0;
+  border: 1px solid #f56c6c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.highlight-warning {
+  color: #e6a23c;
+  background-color: #fdf6ec;
+  border: 1px solid #e6a23c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.highlight-special {
+  color: #409eff;
+  background-color: #ecf5ff;
+  border: 1px solid #409eff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* 移动端响应式增强样式 */
+@media (max-width: 768px) {
+  /* 基础字体调整 */
+  html, body {
+    font-size: 14px;
+  }
+  
+  /* 元素UI组件移动端适配 */
+  .el-button {
+    font-size: 14px;
+    height: 44px;
+    line-height: 44px;
+  }
+  
+  .el-input__inner,
+  .el-textarea__inner {
+    font-size: 16px;
+  }
+  
+  .el-form-item__label {
+    font-size: 14px;
+  }
+  
+  .el-card {
+    margin-bottom: 12px;
+  }
+  
+  /* 布局适配 */
+  .el-row {
+    margin-bottom: 16px;
+  }
+  
+  .el-col {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  
+  /* 隐藏不必要的元素 */
+  .hidden-mobile {
+    display: none !important;
+  }
+}
+
+/* 平板设备适配 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .login-container {
+    max-width: 500px;
+  }
+  
+  .type-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 移动端触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .el-button {
+    min-height: 44px;
+  }
+  
+  .el-input__inner,
+  .el-select .el-input__inner {
+    min-height: 44px;
+  }
+  
+  /* 增加触摸目标尺寸 */
+  .el-checkbox__input,
+  .el-radio__input {
+    min-width: 20px;
+    min-height: 20px;
+  }
+}
+
+/* 防止移动端缩放 */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* 移动端滚动优化 */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .el-dialog__wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+
+/* 移动端安全区域适配 */
+@supports (padding: max(0px)) {
+  .reimbursement-container,
+  .login-page {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
