@@ -23,15 +23,15 @@ export interface CompanyConfig {
 // 公司配置信息
 export const companyConfig: CompanyConfig = {
   wechatWork: {
-    corpId: 'ww71db56bf9d6bec37',
-    agentId: '1000008',
-    redirectUri: 'https://try2-edu.fit2cloud.cn/api/wechat-login',
-    state: 'WWLogin'
+    corpId: '',
+    agentId: '',
+    redirectUri: '',
+    state: ''
   },
   
   domains: {
-    production: 'try2-edu.fit2cloud.cn',
-    development: 'localhost'
+    production: '',
+    development: ''
   }
   
 };

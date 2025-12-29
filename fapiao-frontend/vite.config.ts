@@ -44,12 +44,6 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path
       }
-      // // 对/login路径的代理
-      // '/login': {
-      //   target: 'https://try2-edu.fit2cloud.cn',
-      //   changeOrigin: true,
-      //   rewrite: (path) => path.replace(/^\/login/, '/api/qywechat/login')
-      // }
     }
   }
 })
