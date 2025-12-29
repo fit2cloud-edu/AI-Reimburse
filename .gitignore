@@ -1,33 +1,15 @@
-﻿# Frontend
-frontend/node_modules
-frontend/dist
-frontend/.env
-frontend/.env.local
-frontend/.env.*.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/tsconfig.tsbuildinfo
-frontend/.DS_Store
-
-# Backend
-backend/target
-backend/.idea
-backend/*.iml
-backend/.gradle
-backend/build
-backend/out
-
-# IDE
-.vscode
+**/target/
 .idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
+*.iml
+*.class
+*Test.java
+**/test/
+# Backend Spring Boot
+backend/target/
+backend/.idea/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/*.log
+backend/logs/
+backend/.settings/
+backend/.classpath
+backend/.project

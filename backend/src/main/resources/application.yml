@@ -1,0 +1,65 @@
+  server:
+    port: 8000
+    servlet:
+      context-path: /api
+
+  spring:
+    servlet:
+      multipart:
+        max-file-size: 10MB
+        max-request-size: 10MB
+        enabled: true
+
+  # 企业微信审批配置
+  qywechat:
+    approval:
+      template-id.daily:
+      template-id.travel:
+      template-id.business-trip:
+      template-id.travel-subsidy:
+
+    corpid:
+    agentSecret:
+    address-book-secret:
+    agentid:
+    mock:
+      enabled:
+    # 企业微信企业ID（用于验证回调）
+    app-id:
+
+  # MaxKB智能体配置
+  maxkb:
+    base-url:
+    api-key: ${MAXKB_API_KEY:}
+
+  # OSS上传配置
+  oss:
+    upload-url: ${MAXKB_BASE_URL:}
+
+  # 文件配置
+  file:
+    allowed-types: jpg,jpeg,png,pdf,bmp
+    max-size: 10485760
+
+  # 日志配置
+    logging.level.com.fit2cloud.fapiao: DEBUG
+
+  # 发票验证配置
+  invoice:
+    verification:
+      enabled: true     # 是否启用发票验证
+      api:
+        host: https://fapiao.market.alicloudapi.com
+        path: /v2/invoice/query
+      appcode:   # 从阿里云控制台获取
+
+  # 网络连接配置
+  rest:
+    template:
+      connect-timeout: 5000  # 连接超时5秒
+      read-timeout: 10000    # 读取超时10秒
+
+  # 前端配置
+  frontend:
+    base-url:
+    error-page: https://your-error-page/#/error
