@@ -1,0 +1,33 @@
+﻿# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/tsconfig.tsbuildinfo
+frontend/.DS_Store
+
+# Backend
+backend/target
+backend/.idea
+backend/*.iml
+backend/.gradle
+backend/build
+backend/out
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
