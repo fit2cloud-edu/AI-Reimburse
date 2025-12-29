@@ -90,39 +90,39 @@
 - **超时配置**：合理的请求超时时间设置
 
 ## 项目结构
-src/ 
- ├── api/ # API接口定义
- │ ├── auth.ts # 认证相关接口 
- │ ├── department.ts # 部门相关接口 
- │ ├── reimbursement.ts # 报销相关接口 
- │ ├── upload.ts # 文件上传接口 
- │ └── types.ts # TypeScript类型定义 
- ├── assets/ # 静态资源 
- │ └── main.css # 全局样式 
- ├── components/ # 公共组件 
- │ ├── FileUploader.vue # 文件上传组件 
- │ ├── FlowSteps.vue # 流程步骤组件 
- │ ├── InvoiceCard.vue # 发票卡片组件 
- │ ├── ProgressModal.vue # 进度弹窗组件 
- │ └── ValidationMarker.vue # 验证标记组件 
- ├── config/ # 配置文件 
- │ └── company.ts # 企业配置信息 
- ├── router/ # 路由配置 
- │ └── index.ts # 路由定义 
- ├── store/ # 状态管理 
- │ ├── auth.ts # 认证状态管理 
- │ ├── reimbursement.ts # 报销状态管理 
- │ └── index.ts # Store入口 
- ├── utils/ # 工具函数 
- │ ├── fileUtils.ts # 文件处理工具 
- │ ├── request.ts # HTTP请求封装 
- │ ├── validators.ts # 表单验证工具 
- │ └── wxCompat.ts # 微信兼容工具 
- ├── views/ # 页面组件 
- │ ├── Login.vue # 登录页面 
- │ └── Reimbursement.vue # 报销页面 
- ├── App.vue # 根组件 
- └── main.ts # 应用入口
+    src/ 
+    ├── api/ # API接口定义
+    │ ├── auth.ts # 认证相关接口 
+    │ ├── department.ts # 部门相关接口 
+    │ ├── reimbursement.ts # 报销相关接口 
+    │ ├── upload.ts # 文件上传接口 
+    │ └── types.ts # TypeScript类型定义 
+    ├── assets/ # 静态资源 
+    │ └── main.css # 全局样式 
+    ├── components/ # 公共组件 
+    │ ├── FileUploader.vue # 文件上传组件 
+    │ ├── FlowSteps.vue # 流程步骤组件 
+    │ ├── InvoiceCard.vue # 发票卡片组件 
+    │ ├── ProgressModal.vue # 进度弹窗组件 
+    │ └── ValidationMarker.vue # 验证标记组件 
+    ├── config/ # 配置文件 
+    │ └── company.ts # 企业配置信息 
+    ├── router/ # 路由配置 
+    │ └── index.ts # 路由定义 
+    ├── store/ # 状态管理 
+    │ ├── auth.ts # 认证状态管理 
+    │ ├── reimbursement.ts # 报销状态管理 
+    │ └── index.ts # Store入口 
+    ├── utils/ # 工具函数 
+    │ ├── fileUtils.ts # 文件处理工具 
+    │ ├── request.ts # HTTP请求封装 
+    │ ├── validators.ts # 表单验证工具 
+    │ └── wxCompat.ts # 微信兼容工具 
+    ├── views/ # 页面组件 
+    │ ├── Login.vue # 登录页面 
+    │ └── Reimbursement.vue # 报销页面 
+    ├── App.vue # 根组件 
+    └── main.ts # 应用入口
 
 
 ## 功能特性
