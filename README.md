@@ -18,3 +18,8 @@ AI 智能报销系统主要解决以下两种报销类型：
 日常报销：员工日常的餐饮、团建、交通以及其他发票的报销，对应员工的日常报销申请流程；
 差旅报销：员工非Base城市的差旅费用报销，企业内部包含出差申请、差旅补贴申请以及差旅费用报销申请等三个流程可一键提交报销，默认同时提交三个审批，差旅补贴申请是否提交可自选。
 ​
+# 三、MaxKB工具链接
+https://east-mk.fit2cloud.cn/chat/c3bc4670a201567a?corpid=ww71db56bf9d6bec37&corpsecret=jMv3sSf1naOLJuY07F3sxVViOXhO1Fsqzb8IZL5NvkQ&media_ids=
+
+# 四、系统详细功能介绍参考：
+https://blog.csdn.net/m0_59880555/article/details/156271790?fromshare=blogdetail&sharetype=blogdetail&sharerId=156271790&sharerefer=PC&sharesource=m0_59880555&sharefrom=from_link
