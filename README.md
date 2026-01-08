@@ -42,6 +42,8 @@ AI 智能报销系统主要解决以下两种报销类型：
 [MaxKB使用手册](https://maxkb.cn/docs/v2/)  
 2.系统详细功能介绍参考：  
 [基于AI+企微的智能报销系统](https://blog.csdn.net/m0_59880555/article/details/156271790?fromshare=blogdetail&sharetype=blogdetail&sharerId=156271790&sharerefer=PC&sharesource=m0_59880555&sharefrom=from_link)  
-3.系统前后端详细说明：  
+3.系统前后端详细介绍和使用说明：  
 [前端详细说明](https://github.com/fit2cloud-edu/AI-Reimburse/blob/11b43e1c4e0253dc6decde936cf8f49b59993eda/frontend/README.md)  
-[后端详细说明](https://github.com/fit2cloud-edu/AI-Reimburse/blob/11b43e1c4e0253dc6decde936cf8f49b59993eda/backend/README.md)
+[后端详细说明](https://github.com/fit2cloud-edu/AI-Reimburse/blob/11b43e1c4e0253dc6decde936cf8f49b59993eda/backend/README.md)  
+4.企业微信相关配置可参考官方文档:  
+[企业微信官方开发者文档](https://developer.work.weixin.qq.com/)
