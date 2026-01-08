@@ -212,6 +212,25 @@
          提供多种查重查询方法
          支持发票记录的增删改查操作
 
+      MySQL数据库存储经该系统提交的发票的信息
+         数据库表建表语句如下:  
+                  CREATE TABLE `invoice_duplicate_check` (
+                  `id` bigint NOT NULL AUTO_INCREMENT,
+                  `invoice_number` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '发票号码',
+                  `invoice_date` date NOT NULL COMMENT '开票日期',
+                  `total_amount` decimal(10,2) DEFAULT NULL COMMENT '发票金额',
+                  `user_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '提交用户ID',
+                  `submit_time` datetime NOT NULL COMMENT '提交时间',
+                  `status` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'SUBMITTED' COMMENT '状态：SUBMITTED/APPROVED/REJECTED',
+                  `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                  `updated_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `uk_invoice_identifier` (`invoice_number`,`invoice_date`,`user_id`),
+                  UNIQUE KEY `UKpyuty18s9esx7qwbh1oxgvew3` (`invoice_number`,`invoice_date`,`user_id`),
+                  KEY `idx_invoice_number_date` (`invoice_number`,`invoice_date`),
+                  KEY `idx_user_submit_time` (`user_id`,`submit_time`)
+                ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='发票查重记录表'
+
 ### 核心功能
 
       1.查重检查：支持多种查重策略，防止重复报销
