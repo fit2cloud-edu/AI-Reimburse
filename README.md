@@ -15,8 +15,32 @@
 AI 智能报销系统主要解决以下两种报销类型：  
 日常报销：员工日常的餐饮、团建、交通以及其他发票的报销，对应员工的日常报销申请流程；  
 差旅报销：员工非Base城市的差旅费用报销，企业内部包含出差申请、差旅补贴申请以及差旅费用报销申请等三个流程可一键提交报销，默认同时提交三个审批，差旅补贴申请是否提交可自选。
+
+# 三、使用方式
+## 企业微信  
+1.参考企业微信官方文档，在企业微信中创建企业、自建应用，获取企业ID、自建应用ID、自建应用密钥等  
+2.参考[基于AI+企微的智能报销系统](https://blog.csdn.net/m0_59880555/article/details/156271790?fromshare=blogdetail&sharetype=blogdetail&sharerId=156271790&sharerefer=PC&sharesource=m0_59880555&sharefrom=from_link)中四个审批模板，在“审批”中创建并修改审批模板，同时获取审批模板对应审批模板ID  
+3.修改应用主页为前端运行后的主页  
+4.若要使用企业微信登录功能，需要在自建应用后台配置“网页授权及JS-SDK”、“企业微信授权登录”、“企业可信IP”等  
+## MaxKB智能体
+1.获得智能体应用文件  
+2.在部署好的MaxKB环境中导入智能体  
+3.在智能体工作流“基本信息”中修改两个默认值  
+4.模型节点的模型改为可用的模型  
+5.（可选）模型提示词中示例部分可填入实际发票信息提高模型识别准确率
+## 前端
+1.获得前端源代码文件  
+2.参考[前端详细说明](https://github.com/fit2cloud-edu/AI-Reimburse/blob/11b43e1c4e0253dc6decde936cf8f49b59993eda/frontend/README.md)修改配置文件  
+3.在合适的地方运行前端
+## 后端
+1.获得后端源代码文件  
+2.参考[后端详细说明](https://github.com/fit2cloud-edu/AI-Reimburse/blob/11b43e1c4e0253dc6decde936cf8f49b59993eda/backend/README.md)修改配置文件  
+3.在合适的地方运行后端
+## 阿里云发票真伪查验工具
+1.使用该工具:[发票真伪查验工具](https://market.aliyun.com/detail/cmapi025075?spm=5176.29867242_210807074.0.0.44e83e7ekmJe2L#sku=yuncode1907500008)  
+2.购买后获得AppCode填写在后端配置文件中
 ​
-# 三、技术栈
+# 四、技术栈
 ## 前端
 - **前端框架**: Vue 3.5.25 + TypeScript
 - **构建工具**: Vite 7.2.4
@@ -36,7 +60,7 @@ AI 智能报销系统主要解决以下两种报销类型：
 - **文件处理**：支持上传PDF、图片等发票文件
 - **其他依赖**：Lombok、Spring Boot Actuato等
 
-# 四、参考资料
+# 五、参考资料
 1.开源企业级智能体平台MaxKB：  
 [MaxKB开源项目地址](https://github.com/1panel-dev/MaxKB)  
 [MaxKB使用手册](https://maxkb.cn/docs/v2/)  
