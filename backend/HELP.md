@@ -25,10 +25,12 @@
 ## 运行项目
 
       bash
+      mvn clean package
       java -jar target/Fapiao-0.0.1-SNAPSHOT.war
       
       或者使用Maven直接运行：
-      bash mvn spring-boot:run
+      bash 
+      mvn spring-boot:run
 
 ## 访问应用
 
@@ -69,12 +71,12 @@
          Apply
             qywechat:
             approval:
-            template-id.daily: <每日审批模板ID>
-            template-id.travel: <差旅审批模板ID>
-            template-id.business-trip: <商务出差审批模板ID>
+            template-id.daily: <日常报销审批模板ID>
+            template-id.travel: <差旅报销审批模板ID>
+            template-id.business-trip: <出差审批模板ID>
             template-id.travel-subsidy: <差旅补贴审批模板ID>
             corpid: <企业微信企业ID>
-            agentSecret: <应用密钥>
+            agentSecret: <企业微信自建应用密钥>
             address-book-secret: <通讯录密钥>
             agentid: <应用ID>
             app-id: <企业微信企业ID，用于信息比对>
@@ -99,6 +101,16 @@
                      path: /v2/invoice/query
                      appcode: <阿里云API AppCode>
 
+## 发票查重配置
+
+      yaml
+         Apply
+            invoice:
+               duplicate:
+                  check:
+                     enabled: true                          # 查重功能开关
+                     strategy: STRICT                       # 查重策略：STRICT|NORMAL|USER
+
 ## 文件配置
 
       yaml
@@ -111,7 +123,8 @@
 
       1.目前后端提交审批流程为：个人提交->本人驳回或同意->部门领导审批
       
-      2.除了修改审批模板外，还要修改Service代码中的模板控件ID，确保与企业微信配置一致。
+      2.除了修改审批模板外，还要修改Service(WeComApprovalService、WeChatWorkFileService)
+        代码中的审批模板控件ID，确保与企业微信配置一致。
 
 # 主要功能模块
 
@@ -152,7 +165,7 @@
 
       WeComApprovalService：企业微信审批服务
          实现submitApproval方法提交报销申请到企业微信审批
-         支持不同类型的审批模板（日常、差旅、商务出差、差旅补贴）
+         支持不同类型的审批模板（日常、差旅、出差、差旅补贴）
          处理审批结果查询和状态管理
 
       BusinessTripService：出差申请服务
@@ -186,7 +199,50 @@
       3.验证结果记录：保存验证结果
       4.格式处理：支持多种日期格式和金额格式的转换
 
-## 4. 文件管理
+## 4. 发票查重
+
+### 实现服务
+
+      InvoiceDuplicateCheckService：发票查重核心服务
+         实现checkDuplicate方法检查发票是否重复
+         支持多种查重策略（STRICT、NORMAL、USER）
+         提供发票记录管理和状态更新功能
+
+      InvoiceDuplicateCheckRepository：发票查重数据访问层
+         提供多种查重查询方法
+         支持发票记录的增删改查操作
+
+      MySQL数据库存储经该系统提交的发票的信息
+         数据库表建表语句如下:  
+                  CREATE TABLE `invoice_duplicate_check` (
+                  `id` bigint NOT NULL AUTO_INCREMENT,
+                  `invoice_number` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '发票号码',
+                  `invoice_date` date NOT NULL COMMENT '开票日期',
+                  `total_amount` decimal(10,2) DEFAULT NULL COMMENT '发票金额',
+                  `user_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '提交用户ID',
+                  `submit_time` datetime NOT NULL COMMENT '提交时间',
+                  `status` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'SUBMITTED' COMMENT '状态：SUBMITTED/APPROVED/REJECTED',
+                  `created_time` datetime DEFAULT CURRENT_TIMESTAMP,
+                  `updated_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`),
+                  UNIQUE KEY `uk_invoice_identifier` (`invoice_number`,`invoice_date`,`user_id`),
+                  UNIQUE KEY `UKpyuty18s9esx7qwbh1oxgvew3` (`invoice_number`,`invoice_date`,`user_id`),
+                  KEY `idx_invoice_number_date` (`invoice_number`,`invoice_date`),
+                  KEY `idx_user_submit_time` (`user_id`,`submit_time`)
+                ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='发票查重记录表'
+
+### 核心功能
+
+      1.查重检查：支持多种查重策略，防止重复报销
+         - STRICT策略：检查是否存在相同发票号码和开票日期的记录
+         - NORMAL策略：检查是否存在相同发票号码和近似金额的记录
+         - USER策略：检查同一用户是否重复提交相同发票
+      2.灵活配置：支持通过配置开关启用/禁用查重功能
+      3.智能解析：支持多种日期和金额格式的自动解析
+      4.状态管理：支持更新发票状态（SUBMITTED、REJECTED等）
+      5.多环节集成：在发票识别和报销申请提交两个环节进行查重检查
+
+## 5. 文件管理
 
 ### 实现服务
 
@@ -206,7 +262,7 @@
       3.文件类型验证：限制允许上传的文件类型
       4.企业微信微盘集成：支持从微盘获取文件
 
-## 5. 部门和用户管理
+## 6. 部门和用户管理
 
 ### 实现服务
 
@@ -226,7 +282,7 @@
       2.用户部门关系：管理用户所属部门
       3.区域信息提取：根据部门获取区域信息
 
-## 6. 智能体集成
+## 7. 智能体集成
 
 ###    实现服务
 
@@ -336,7 +392,8 @@
       mvn clean package -DskipTests
 
 # 注意事项
-      
+
       1.企业微信配置需要正确填写，否则无法正常使用企业微信功能；
       2.发票验证功能需要配置有效的阿里云API AppCode；
-      3.文件上传功能需要配置正确的OSS地址
+      3.文件上传功能需要配置正确的OSS地址和AccessKey/SecretKey；
+      4.智能体功能需要配置正确的MaxKB API地址和密钥。

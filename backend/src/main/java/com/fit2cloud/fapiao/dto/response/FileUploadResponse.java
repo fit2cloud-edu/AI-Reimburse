@@ -11,7 +11,10 @@ public class FileUploadResponse {
     private String fileName;
     private String chatContent;
     private List<InvoiceInfo> invoiceInfos;
-    private String mediaIds; // 新增字段
+    private String mediaIds;
+
+    // 每日补贴金额（单位：元）
+    private Integer dailySubsidyAmount;
 
     // 规则校验结果
     private BatchValidationResult validationResult;

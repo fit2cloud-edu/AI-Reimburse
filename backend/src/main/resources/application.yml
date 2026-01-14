@@ -1,9 +1,29 @@
   server:
-    port: 8000
+    port: 8888
     servlet:
       context-path: /api
 
   spring:
+    # MySQL数据源配置  MySQL数据库用于存储已提交的发票数据
+    datasource:
+      url:   # 数据库连接地址
+      driver-class-name: com.mysql.cj.jdbc.Driver # 数据库驱动
+      username: root  # 数据库用户名
+      password: Password  # 数据库密码
+      hikari:
+        maximum-pool-size: 10  # 连接池最大连接数
+        minimum-idle: 5  # 连接池最小空闲连接数
+
+    # JPA配置
+    jpa:
+      hibernate:
+        ddl-auto: update
+      show-sql: true
+      properties:
+        hibernate:
+          dialect: org.hibernate.dialect.MySQL8Dialect
+          format_sql: true
+
     servlet:
       multipart:
         max-file-size: 10MB
@@ -13,36 +33,41 @@
   # 企业微信审批配置
   qywechat:
     approval:
-      template-id.daily:
-      template-id.travel:
-      template-id.business-trip:
-      template-id.travel-subsidy:
+      template-id.daily:   # 日常报销审批模板ID
+      template-id.travel:   # 出差审批模板ID
+      template-id.business-trip:   # 差旅报销审批模板ID
+      template-id.travel-subsidy:   # 出差补贴审批模板ID
+      #  以上ID来自：企业微信后台点开具体模板，此时页面的URL最后一段的值即为模板ID
+      # 出差补贴金额配置
+      subsidy:
+        daily-amount: 100  # 每日补贴金额，单位：元
 
-    corpid:
-    agentSecret:
-    address-book-secret:
-    agentid:
+
+    corpid: wwXXXXXXXX  # 企业微信CorpID
+    agentSecret: xxxxxxxxx  # 企业微信应用密钥
+    address-book-secret: xxxxxxxxxx  # 通讯录密钥
+    agentid: 10000xx  # 应用ID
     mock:
-      enabled:
+      enabled: false  # 是否启用模拟模式
     # 企业微信企业ID（用于验证回调）
-    app-id:
+    app-id: wwXXXXXXXX  # 企业微信企业ID
 
   # MaxKB智能体配置
   maxkb:
-    base-url:
-    api-key: ${MAXKB_API_KEY:}
+    base-url: https://east-mk.fit2cloud.cn/chat/api/xxxxxxxx  # MaxKB智能体基础URL
+    api-key: ${MAXKB_API_KEY:application-xxxxxx}  # MaxKB智能体API密钥
 
   # OSS上传配置
   oss:
-    upload-url: ${MAXKB_BASE_URL:}
+    upload-url: ${XXXXX_BASE_URL:}  # OSS上传URL
 
   # 文件配置
   file:
-    allowed-types: jpg,jpeg,png,pdf,bmp
-    max-size: 10485760
+    allowed-types: jpg,jpeg,png,pdf,bmp  # 允许上传的文件类型
+    max-size: 10485760  # 最大文件大小10MB
 
   # 日志配置
-    logging.level.com.fit2cloud.fapiao: DEBUG
+    logging.level.com.fit2cloud.fapiao: DEBUG  # 发票验证日志级别
 
   # 发票验证配置
   invoice:
@@ -51,7 +76,13 @@
       api:
         host: https://fapiao.market.alicloudapi.com
         path: /v2/invoice/query
-      appcode:   # 从阿里云控制台获取
+      appcode: xxxxxxxxxx  # 从阿里云控制台获取
+
+  # 发票查重配置
+    duplicate:
+      check:
+        enabled: true                          # 查重功能开关
+        strategy: STRICT                       # 查重策略：STRICT|NORMAL|LOOSE|USER
 
   # 网络连接配置
   rest:
@@ -61,5 +92,5 @@
 
   # 前端配置
   frontend:
-    base-url:
-    error-page: https://your-error-page/#/error
+    base-url: http://xxxxxxxxxx:3250
+    error-page: https://xxxxxxxxxxx/#/error

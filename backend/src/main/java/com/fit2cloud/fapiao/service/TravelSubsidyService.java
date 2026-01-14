@@ -29,6 +29,10 @@ public class TravelSubsidyService {
     @Value("${qywechat.approval.template-id.travel-subsidy:}")
     private String travelSubsidyTemplateId;
 
+    // 补贴金额配置
+    @Value("${qywechat.approval.subsidy.daily-amount:100}")
+    private Integer dailySubsidyAmount;
+
     @Autowired
     private QyWechatService qyWechatService;
 
@@ -37,6 +41,13 @@ public class TravelSubsidyService {
 
     @Autowired
     private DepartmentService departmentService;
+
+    /**
+     * 获取每日补贴金额
+     */
+    public Integer getDailySubsidyAmount() {
+        return dailySubsidyAmount;
+    }
 
     /**
      * 提交出差补贴申请单
@@ -117,8 +128,8 @@ public class TravelSubsidyService {
 
         try {
             double days = Double.parseDouble(travelDays);
-            // 0.5天 = 50元, 1天 = 100元
-            BigDecimal amount = BigDecimal.valueOf(days * 100);
+            // 使用配置的每日补贴金额计算
+            BigDecimal amount = BigDecimal.valueOf(days * dailySubsidyAmount);
             return amount.setScale(2, BigDecimal.ROUND_HALF_UP);
         } catch (NumberFormatException e) {
             log.warn("解析出差天数失败: {}, 使用0元补贴", travelDays);

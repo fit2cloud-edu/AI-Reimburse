@@ -32,6 +32,12 @@ public class FileUploadService {
     @Autowired
     private RuleValidationService ruleValidationService;
 
+    @Autowired
+    private InvoiceDuplicateCheckService duplicateCheckService;
+
+    @Autowired
+    private TravelSubsidyService travelSubsidyService;
+
     /**
      * 处理单个文件上传和智能体识别的完整流程
      */
@@ -208,6 +214,37 @@ public class FileUploadService {
             // 7. 解析发票信息和mediaIds
             InvoiceParserService.InvoiceParseResult parseResult = invoiceParserService.parseInvoicesFromContent(chatResponse.getData().getContent());
 
+            // 发票查重结果（针对所有发票）
+            DuplicateCheckResult overallDuplicateCheckResult = null;
+
+            // 在发票识别后立即进行查重检查（使用临时用户ID）
+            if (parseResult.getInvoices() != null && !parseResult.getInvoices().isEmpty()) {
+                log.info("开始进行发票识别后的查重检查...");
+                String tempUserId = "TEMP_" + System.currentTimeMillis(); // 临时用户ID用于识别阶段
+
+                // 对每张发票进行查重，并为每张发票设置查重结果
+                int duplicateCount = 0;
+                for (int i = 0; i < parseResult.getInvoices().size(); i++) {
+                    InvoiceInfo invoice = parseResult.getInvoices().get(i);
+
+                    // 直接调用查重服务，不再需要try-catch
+                    DuplicateCheckResult result = duplicateCheckService.checkDuplicate(invoice, tempUserId);
+
+                    // 为每张发票设置查重结果
+                    invoice.setDuplicateCheckResult(result);
+
+                    // 统计重复发票数量
+                    if (result.isDuplicate()) {
+                        duplicateCount++;
+                    }
+
+                        log.info("发票{}查重结果: 是否重复={}, 原因={}", i+1, result.isDuplicate(), result.getDuplicateReason());
+                }
+
+                log.info("发票识别后查重检查完成，共检查{}张发票，发现{}张重复",
+                        parseResult.getInvoices().size(), duplicateCount);
+            }
+
             // 新增：规则校验
             BatchValidationResult validationResult = ruleValidationService.validateInvoices(parseResult.getInvoices(), formType);
 
@@ -218,6 +255,8 @@ public class FileUploadService {
             response.setInvoiceInfos(parseResult.getInvoices());
             response.setMediaIds(parseResult.getMediaIds());
             response.setValidationResult(validationResult); // 设置校验结果
+            // 设置每日补贴金额
+            response.setDailySubsidyAmount(travelSubsidyService.getDailySubsidyAmount());
 
             return response;
 

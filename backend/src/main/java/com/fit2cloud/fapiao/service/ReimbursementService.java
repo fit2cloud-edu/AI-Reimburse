@@ -24,6 +24,9 @@ public class ReimbursementService {
     @Autowired
     private TravelSubsidyService travelSubsidyService;
 
+    @Autowired
+    private InvoiceDuplicateCheckService duplicateCheckService;
+
     /**
      * 提交报销申请
      */
@@ -59,6 +62,19 @@ public class ReimbursementService {
             log.info("区域: {}", region);
             log.info("成本部门: {}", costDepartment);
 
+            // 发票查重检查
+            if (invoices != null && !invoices.isEmpty()) {
+                log.info("开始进行发票查重检查...");
+                for (InvoiceInfo invoice : invoices) {
+                    try {
+                        duplicateCheckService.checkDuplicate(invoice, userId);
+                    } catch (Exception e) {
+                        log.error("发票查重检查失败: {}", e.getMessage());
+                        throw e; // 查重失败直接抛出异常
+                    }
+                }
+                log.info("所有发票查重检查通过");
+            }
 
             if (invoices != null) {
                 for (int i = 0; i < invoices.size(); i++) {
@@ -84,7 +100,7 @@ public class ReimbursementService {
                         applyDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                     }log.warn("报销日期为空，使用当前日期作为申请日期: {}", applyDate);
 
-// 第一阶段：提交出差申请单
+                    // 第一阶段：提交出差申请单
                     log.info("=== 第一阶段：提交出差申请单 ===");
                     businessTripApprovalId = businessTripService.submitBusinessTripApproval(
                             userId, formReimbursementReason, customerName, applyDate, costDepartment,
@@ -139,6 +155,17 @@ public class ReimbursementService {
                     approvalIds.add(approvalId);
                     log.info("第 {} 组报销申请提交成功，审批编号: {}", i + 1, approvalId);
                 }
+                // 新增：记录所有发票提交
+                log.info("开始记录发票提交信息...");
+                for (InvoiceInfo invoice : invoices) {
+                    try {
+                        duplicateCheckService.recordInvoiceSubmission(invoice, userId);
+                    } catch (Exception e) {
+                        log.error("记录发票提交信息失败: {}", e.getMessage());
+                        // 记录失败不影响主要业务流程，但需要记录日志
+                    }
+                }
+                log.info("所有发票提交信息记录完成");
             }
 
             // 记录出差申请单和报销申请单的关联关系

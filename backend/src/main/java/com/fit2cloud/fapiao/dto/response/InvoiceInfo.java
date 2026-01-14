@@ -29,4 +29,7 @@ public class InvoiceInfo {
     //合规检查字段
     private String complianceCheck;
 
+    // 发票查重结果
+    private DuplicateCheckResult duplicateCheckResult;
+
 }
