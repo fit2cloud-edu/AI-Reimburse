@@ -274,4 +274,245 @@ export const validators = {
   }
 }
 
+// 从报销理由中提取出差日期
+export function extractTravelDatesFromReason(reason: string): { startDate: string | null; endDate: string | null } {
+  if (!reason || !reason.trim()) {
+    return { startDate: null, endDate: null }
+  }
+
+  // 支持多种日期格式的正则表达式
+  const datePatterns = [
+    // 格式：2024-01-15 到 2024-01-20
+    /(\d{4}-\d{1,2}-\d{1,2})\s*(?:到|至|-|~)\s*(\d{4}-\d{1,2}-\d{1,2})/,
+    // 格式：2024/01/15 到 2024/01/20
+    /(\d{4}\/\d{1,2}\/\d{1,2})\s*(?:到|至|-|~)\s*(\d{4}\/\d{1,2}\/\d{1,2})/,
+    // 格式：2024年1月15日 到 2024年1月20日
+    /(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日\s*(?:到|至|-|~)\s*(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/,
+    // 格式：1月15日 到 1月20日（自动补充当前年份）
+    /(\d{1,2})月\s*(\d{1,2})日\s*(?:到|至|-|~)\s*(\d{1,2})月\s*(\d{1,2})日/,
+    // 格式：1月15日上午 到 1月20日上午（包含时段信息）
+    /(\d{1,2})月\s*(\d{1,2})日\s*(?:上午|下午)?\s*(?:到|至|-|~)\s*(\d{1,2})月\s*(\d{1,2})日\s*(?:上午|下午)?/,
+    // 格式：3.4-3.24（月份.日期-月份.日期，自动补充当前年份）- 优先级提高
+    /(\d{1,2})\.(\d{1,2})\s*(?:到|至|-|~)\s*(\d{1,2})\.(\d{1,2})/,
+    // 格式：25.11.1-12.1（年份.月份.日期-月份.日期）- 添加年份验证
+    /(\d{2,4})\.(\d{1,2})\.(\d{1,2})\s*(?:到|至|-|~)\s*(\d{1,2})\.(\d{1,2})/,
+    // 格式：15日 到 20日（自动补充当前年份和月份）
+    /(\d{1,2})日\s*(?:到|至|-|~)\s*(\d{1,2})日/,
+    // 格式：1-2（日期-日期，自动补充当前年份和月份）
+    /(\d{1,2})\s*(?:到|至|-|~)\s*(\d{1,2})/
+  ]
+
+  for (const pattern of datePatterns) {
+    const match = reason.match(pattern)
+    if (match) {
+      let startDate: string | null = null
+      let endDate: string | null = null
+
+      if (pattern === datePatterns[0]) {
+        // 格式：2024-01-15 到 2024-01-20
+        if (match[1] && match[2]) {
+          startDate = match[1]
+          endDate = match[2]
+        }
+      } else if (pattern === datePatterns[1]) {
+        // 格式：2024/01/15 到 2024/01/20
+        if (match[1] && match[2]) {
+          startDate = match[1].replace(/\//g, '-')
+          endDate = match[2].replace(/\//g, '-')
+        }
+      } else if (pattern === datePatterns[2]) {
+        // 格式：2024年1月15日 到 2024年1月20日
+        if (match[1] && match[2] && match[3] && match[4] && match[5] && match[6]) {
+          const startYear = match[1]
+          const startMonth = match[2].padStart(2, '0')
+          const startDay = match[3].padStart(2, '0')
+          const endYear = match[4]
+          const endMonth = match[5].padStart(2, '0')
+          const endDay = match[6].padStart(2, '0')
+          startDate = `${startYear}-${startMonth}-${startDay}`
+          endDate = `${endYear}-${endMonth}-${endDay}`
+        }
+      } else if (pattern === datePatterns[3]) {
+        // 格式：1月15日 到 1月20日
+        if (match[1] && match[2] && match[3] && match[4]) {
+          const currentYear = new Date().getFullYear()
+          const startMonth = match[1].padStart(2, '0')
+          const startDay = match[2].padStart(2, '0')
+          const endMonth = match[3].padStart(2, '0')
+          const endDay = match[4].padStart(2, '0')
+          startDate = `${currentYear}-${startMonth}-${startDay}`
+          endDate = `${currentYear}-${endMonth}-${endDay}`
+        }
+      } else if (pattern === datePatterns[4]) {
+        // 格式：1月15日上午 到 1月20日上午（包含时段信息）
+        if (match[1] && match[2] && match[3] && match[4]) {
+          const currentYear = new Date().getFullYear()
+          const startMonth = match[1].padStart(2, '0')
+          const startDay = match[2].padStart(2, '0')
+          const endMonth = match[3].padStart(2, '0')
+          const endDay = match[4].padStart(2, '0')
+          startDate = `${currentYear}-${startMonth}-${startDay}`
+          endDate = `${currentYear}-${endMonth}-${endDay}`
+        }
+      } else if (pattern === datePatterns[5]) {
+        // 格式：3.4-3.24（月份.日期-月份.日期，自动补充当前年份）
+        if (match[1] && match[2] && match[3] && match[4]) {
+          const currentDate = new Date()
+          const currentYear = currentDate.getFullYear()
+          const currentMonth = currentDate.getMonth() + 1
+          
+          const startMonth = match[1].padStart(2, '0')
+          const startDay = match[2].padStart(2, '0')
+          const endMonth = match[3].padStart(2, '0')
+          const endDay = match[4].padStart(2, '0')
+          
+          // 验证月份有效性（1-12）
+          const startMonthNum = parseInt(startMonth)
+          const endMonthNum = parseInt(endMonth)
+          if (startMonthNum >= 1 && startMonthNum <= 12 && endMonthNum >= 1 && endMonthNum <= 12) {
+            // 智能判断年份：如果提取的月份大于当前月份，说明是去年的日期
+            let targetYear = currentYear
+            if (startMonthNum > currentMonth) {
+              targetYear = currentYear - 1
+            }
+            
+            startDate = `${targetYear}-${startMonth}-${startDay}`
+            endDate = `${targetYear}-${endMonth}-${endDay}`
+          }
+        }
+      } else if (pattern === datePatterns[6]) {
+        // 格式：25.11.1-12.1（年份.月份.日期-月份.日期）
+        if (match[1] && match[2] && match[3] && match[4] && match[5]) {
+          const startYear = match[1].length === 2 ? `20${match[1]}` : match[1] // 处理2位年份
+          const startMonth = match[2].padStart(2, '0')
+          const startDay = match[3].padStart(2, '0')
+          const endMonth = match[4].padStart(2, '0')
+          const endDay = match[5].padStart(2, '0')
+          
+          // 验证年份有效性（1900-当前年份+1）
+          const startYearNum = parseInt(startYear)
+          const currentYear = new Date().getFullYear()
+          if (startYearNum >= 1900 && startYearNum <= currentYear + 1) {
+            startDate = `${startYear}-${startMonth}-${startDay}`
+            endDate = `${startYear}-${endMonth}-${endDay}`
+          }
+        }
+      } else if (pattern === datePatterns[7]) {
+        // 格式：15日 到 20日
+        if (match[1] && match[2]) {
+          const currentDate = new Date()
+          const currentYear = currentDate.getFullYear()
+          const currentMonth = currentDate.getMonth() + 1
+          const currentDay = currentDate.getDate()
+          
+          const startDay = match[1].padStart(2, '0')
+          const endDay = match[2].padStart(2, '0')
+          
+          // 智能判断年份和月份：如果提取的日期大于当前日期，说明是上个月的日期
+          let targetYear = currentYear
+          let targetMonth = currentMonth.toString().padStart(2, '0')
+          
+          const startDayNum = parseInt(startDay)
+          if (startDayNum > currentDay) {
+            // 如果开始日期大于当前日期，说明是上个月
+            if (currentMonth === 1) {
+              targetYear = currentYear - 1
+              targetMonth = '12'
+            } else {
+              targetMonth = (currentMonth - 1).toString().padStart(2, '0')
+            }
+          }
+          
+          startDate = `${targetYear}-${targetMonth}-${startDay}`
+          endDate = `${targetYear}-${targetMonth}-${endDay}`
+        }
+      } else if (pattern === datePatterns[8]) {
+        // 格式：1-2（日期-日期，自动补充当前年份和月份）
+        if (match[1] && match[2]) {
+          const currentDate = new Date()
+          const currentYear = currentDate.getFullYear()
+          const currentMonth = currentDate.getMonth() + 1
+          const currentDay = currentDate.getDate()
+          
+          const startDay = match[1].padStart(2, '0')
+          const endDay = match[2].padStart(2, '0')
+          
+          // 智能判断年份和月份：如果提取的日期大于当前日期，说明是上个月的日期
+          let targetYear = currentYear
+          let targetMonth = currentMonth.toString().padStart(2, '0')
+          
+          const startDayNum = parseInt(startDay)
+          if (startDayNum > currentDay) {
+            // 如果开始日期大于当前日期，说明是上个月
+            if (currentMonth === 1) {
+              targetYear = currentYear - 1
+              targetMonth = '12'
+            } else {
+              targetMonth = (currentMonth - 1).toString().padStart(2, '0')
+            }
+          }
+          
+          startDate = `${targetYear}-${targetMonth}-${startDay}`
+          endDate = `${targetYear}-${targetMonth}-${endDay}`
+        }
+      }
+
+      // 验证日期有效性并统一为上午到上午
+      if (startDate && endDate && isValidDate(startDate) && isValidDate(endDate)) {
+        // 统一为上午到上午，避免0.5天误差
+        const adjustedStartDate = adjustToMorning(startDate)
+        const adjustedEndDate = adjustToMorning(endDate)
+        
+        return { startDate: adjustedStartDate, endDate: adjustedEndDate }
+      }
+    }
+  }
+
+  return { startDate: null, endDate: null }
+}
+
+// 将日期调整为上午（避免0.5天误差）
+// 将日期调整为上午（避免0.5天误差）
+function adjustToMorning(dateString: string): string {
+  const parts = dateString.split('-')
+  if (parts.length === 3) {
+    const year = parseInt(parts[0] || '0')
+    const month = parseInt(parts[1] || '0') - 1
+    const day = parseInt(parts[2] || '0')
+    
+    // 创建日期对象并设置为上午时间（00:00:00）
+    const date = new Date(year, month, day, 0, 0, 0, 0)
+    
+    // 格式化为 YYYY-MM-DD 格式
+    const formattedYear = date.getFullYear()
+    const formattedMonth = (date.getMonth() + 1).toString().padStart(2, '0')
+    const formattedDay = date.getDate().toString().padStart(2, '0')
+    
+    return `${formattedYear}-${formattedMonth}-${formattedDay}`
+  }
+  return dateString
+}
+
+// 验证日期有效性
+function isValidDate(dateString: string): boolean {
+  const parts = dateString.split('-')
+  if (parts.length === 3) {
+    const year = parseInt(parts[0] || '0')
+    const month = parseInt(parts[1] || '0') - 1
+    const day = parseInt(parts[2] || '0')
+    
+    // 使用本地时间创建日期对象
+    const date = new Date(year, month, day)
+    
+    // 验证日期是否有效
+    return !isNaN(date.getTime()) && 
+           date.getFullYear() === year && 
+           date.getMonth() === month && 
+           date.getDate() === day
+  }
+  return false
+}
+
+
 export default validators
+

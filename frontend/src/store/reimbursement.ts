@@ -16,6 +16,16 @@ export interface InvoiceInfo {
   mediaId?: string
   subReimbursementType?: string
   index?: number
+  duplicateCheckResult?: DuplicateCheckResult  // 查重结果字段
+}
+
+export interface DuplicateCheckResult {
+  duplicate: boolean
+  duplicateReason: string
+  invoiceNumber: string
+  invoiceDate: string
+  userId: string
+  checkStrategy: string
 }
 
 export interface ValidationResult {

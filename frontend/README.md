@@ -169,7 +169,7 @@ cp .env.production .env.local
 ```bash
 npm run dev
 ```
-应用将在 http://localhost:3000 启动
+应用将在 http://localhost:3250 启动
 
 ### 4. 构建生产版本
 ```bash
@@ -231,13 +231,13 @@ API请求配置位于 `src/utils/request.ts`，包含：
 ### 开发环境部署
 1. 配置开发环境变量
 2. 运行 `npm run build`
-3. 将 `dist` 目录部署到Web服务器
+3. Login.vue中“测试登录”入口在取消注释后可直接使用
 
 ### 生产环境部署
 1. 配置生产环境变量
 2. 运行 `npm run build`
-3. 配置Nginx反向代理
-4. 部署到CDN或静态文件服务器
+3. 配置Nginx反向代理或vite.config.ts文件中填写后端服务运行地址
+4. 可以部署到服务器
 
 ### Nginx配置示例
 ```nginx

@@ -119,6 +119,7 @@
                   使用测试账号
                 </el-button>
               </div> -->
+              
             </div>
           </div>
         </div>
@@ -266,7 +267,7 @@ const isInWxWork = ref(false) // 是否在企业微信环境中
 
 // 测试表单
 const testForm = reactive({
-  userid: 'test_user',
+  userid: 'CiShiWuJian',
   name: '测试用户',
   department: '智能体开发',
   region: '华南区域',

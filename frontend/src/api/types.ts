@@ -46,6 +46,7 @@ export interface FileUploadResponse {
         invoiceIndex?: number
       }>
     }
+    dailySubsidyAmount?: number // 每日补贴金额字段
   }
   message?: string
 }

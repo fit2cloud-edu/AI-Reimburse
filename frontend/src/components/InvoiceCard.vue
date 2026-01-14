@@ -13,6 +13,15 @@
             :validation="validation"
             size="small"
           />
+          <!-- 添加查重状态标记 -->
+          <el-tag 
+            v-if="invoice.duplicateCheckResult?.duplicate"
+            type="danger" 
+            size="small"
+            class="duplicate-tag"
+          >
+            重复
+          </el-tag>
           <span v-if="invoice.totalAmount" class="amount-badge">
             {{ invoice.totalAmount }}
           </span>
@@ -71,6 +80,12 @@
             <span>存在严重问题，禁止提交</span>
           </div>
           
+          <!-- 重复发票提示（红色框） -->
+          <div v-if="invoice.duplicateCheckResult?.duplicate" class="validation-message error-message">
+            <el-icon><Warning /></el-icon>
+            <span>发票重复：{{ invoice.duplicateCheckResult.duplicateReason }}</span>
+          </div>
+
           <!-- 警告提示（黄色框） -->
           <div v-if="hasWarning && (hasDateWarning || hasLimitWarning)" class="validation-message warning-message">
             <el-icon><InfoFilled /></el-icon>
@@ -291,6 +306,8 @@ const isEnterpriseEmployee = computed(() => {
 
 // 计算属性
 const hasError = computed(() => {
+  // 如果发票重复，显示错误状态
+  if (props.invoice.duplicateCheckResult?.duplicate) return true
   // 如果验证通过（valid: true），就不显示错误状态
   if (!props.validation || props.validation.valid) return false
   const violations = props.validation.violations || []
@@ -301,6 +318,8 @@ const hasError = computed(() => {
 })
 
 const hasWarning = computed(() => {
+  // 如果发票重复，不显示警告状态（优先显示错误）
+  if (props.invoice.duplicateCheckResult?.duplicate) return false
   // 如果验证通过（valid: true），就不显示警告状态
   if (!props.validation || props.validation.valid) return false
   const violations = props.validation.violations || []
@@ -569,6 +588,10 @@ const handleDelete = async () => {
           color: #303133;
         }
         
+        .duplicate-tag {
+          margin-left: 8px;
+        }
+
         .amount-badge {
           background: #f0f9eb;
           color: #67c23a;

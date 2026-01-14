@@ -160,6 +160,54 @@ html, body {
   color: #e6a23c !important;
 }
 
+/* 步骤指示器样式 */
+.el-step {
+  &.is-wait {
+    .el-step__head {
+      .el-step__icon {
+        border-color: #000000 !important;
+        background-color: white !important;
+        color: #000000 !important;
+      }
+    }
+    
+    .el-step__title {
+      color: #000000 !important;
+      font-weight: bold !important;
+    }
+  }
+  
+  &.is-process {
+    .el-step__head {
+      .el-step__icon {
+        border-color: #409eff !important;
+        background-color: #409eff !important;
+        color: white !important;
+      }
+    }
+    
+    .el-step__title {
+      color: #409eff !important;
+      font-weight: bold !important;
+    }
+  }
+  
+  &.is-finish {
+    .el-step__head {
+      .el-step__icon {
+        border-color: #909399 !important;
+        background-color: #909399 !important;
+        color: white !important;
+      }
+    }
+    
+    .el-step__title {
+      color: #909399 !important;
+      font-weight: bold !important;
+    }
+  }
+}
+
 /* 加载动画 */
 @keyframes spin {
   0% { transform: rotate(0deg); }

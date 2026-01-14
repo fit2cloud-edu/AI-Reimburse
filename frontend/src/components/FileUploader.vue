@@ -9,13 +9,15 @@
       @drop.prevent="handleDrop"
       @click="triggerFileInput"
     >
-      <div class="upload-icon">
-        <el-icon size="60" color="#409eff">
+      <div class="upload-content">
+        <el-icon size="40" color="#409eff" class="upload-icon-right">
           <Upload />
         </el-icon>
+        <div class="upload-texts">
+          <p class="upload-text">{{ uploadText }}</p>
+          <p class="upload-hint">支持图片（JPG/PNG）和PDF文件</p>
+        </div>
       </div>
-      <p class="upload-text">点击或拖拽文件到此处上传</p>
-      <p class="upload-hint">支持图片（JPG/PNG）和PDF文件</p>
       <input 
         ref="fileInputRef"
         type="file"
@@ -26,7 +28,15 @@
       />
     </div>
     
-    <!-- 文件列表 -->
+    <!-- 文件统计信息
+    <div v-if="modelValue.length > 0" class="file-stats">
+      <el-tag type="info" size="large">总数量: {{ modelValue.length }}</el-tag>
+      <el-tag type="success" size="large">有效文件: {{ validFileCount }}</el-tag>
+      <el-tag type="warning" size="large">文档: {{ fileStats.documents }}</el-tag>
+      <el-tag type="primary" size="large">图片: {{ fileStats.images }}</el-tag>
+    </div>
+
+     文件列表 
     <div v-if="modelValue.length > 0" class="file-list">
       <div 
         v-for="(file, index) in modelValue" 
@@ -57,7 +67,7 @@
           </el-button>
         </div>
       </div>
-    </div>
+    </div> -->
     
     <!-- 操作按钮 -->
     <div v-if="showActions" class="upload-actions">
@@ -88,6 +98,7 @@ interface Props {
   modelValue: File[]
   uploading?: boolean
   showActions?: boolean
+  uploadText?: string
 }
 
 interface Emits {
@@ -98,7 +109,8 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   uploading: false,
-  showActions: true
+  showActions: true,
+  uploadText: '点击或拖拽文件到此处上传'
 })
 
 const emit = defineEmits<Emits>()
@@ -150,25 +162,50 @@ const handleDrop = (event: DragEvent) => {
 const handleSelectedFiles = (files: File[]) => {
   const validFiles: File[] = []
   const invalidFiles: string[] = []
+  const duplicateFiles: string[] = []
   
   files.forEach(file => {
     if (fileUtils.isAllowedFileType(file.name)) {
-      validFiles.push(file)
+      // 检查是否重复文件（基于文件名、大小和最后修改时间）
+      const isDuplicate = props.modelValue.some(existingFile => 
+        existingFile.name === file.name && 
+        existingFile.size === file.size && 
+        existingFile.lastModified === file.lastModified
+      )
+      
+      if (isDuplicate) {
+        duplicateFiles.push(file.name)
+      } else {
+        validFiles.push(file)
+      }
     } else {
       invalidFiles.push(file.name)
     }
   })
   
+  // 显示警告信息
   if (invalidFiles.length > 0) {
     ElMessage.warning(`以下文件类型不支持: ${invalidFiles.join(', ')}`)
+  }
+  
+  if (duplicateFiles.length > 0) {
+    ElMessage.warning(`以下文件已存在，已自动跳过: ${duplicateFiles.join(', ')}`)
   }
   
   if (validFiles.length > 0) {
     const newFiles = [...props.modelValue, ...validFiles]
     emit('update:modelValue', newFiles)
-    ElMessage.success(`已添加 ${validFiles.length} 个文件`)
+    ElMessage.success(`已添加 ${validFiles.length} 个有效文件`)
+  } else if (files.length > 0 && validFiles.length === 0) {
+    ElMessage.info('没有新的有效文件可以添加')
   }
 }
+
+// 计算有效文件数量
+const validFileCount = computed(() => {
+  return props.modelValue.length
+})
+
 
 const removeFile = (index: number) => {
   const newFiles = [...props.modelValue]
@@ -211,11 +248,17 @@ const formatFileSize = fileUtils.formatFileSize
   .upload-area {
     border: 2px dashed #dcdfe6;
     border-radius: 8px;
-    padding: 60px 20px;
+    padding: 10px 20px; /* 减少上下内边距，降低高度 */
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     background-color: #fafafa;
+    box-sizing: border-box;
+    min-height: 20px; /* 设置最小高度，与3行文本输入框高度匹配 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     
     &:hover {
       border-color: #409eff;
@@ -227,12 +270,39 @@ const formatFileSize = fileUtils.formatFileSize
       background-color: rgba(64, 158, 255, 0.1);
     }
     
+    .upload-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      
+      .upload-icon-right {
+        flex-shrink: 0;
+      }
+      
+      .upload-texts {
+        text-align: left;
+        
+        .upload-text {
+          margin-bottom: 4px;
+          color: #303133;
+          font-size: 16px;
+          font-weight: 500;
+        }
+        
+        .upload-hint {
+          color: #909399;
+          font-size: 14px;
+        }
+      }
+    }
+
     .upload-icon {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
     
     .upload-text {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       color: #303133;
       font-size: 16px;
       font-weight: 500;

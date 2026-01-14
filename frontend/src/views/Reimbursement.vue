@@ -1,18 +1,5 @@
 <template>
   <div class="reimbursement-container">
-    <!-- 用户信息和退出按钮 -->
-    <div class="user-info-bar">
-      <div class="user-info">
-        <el-avatar size="small" :src="userAvatar" />
-        <span class="user-name">{{ authStore.userName || authStore.userInfo?.name || '用户' }}</span>
-        <el-tag size="small" type="info">{{ authStore.userInfo?.departmentName || authStore.userInfo?.department || '未设置部门' }}</el-tag>
-      </div>
-      <el-button type="text" @click="handleLogout" class="logout-btn">
-        <el-icon><SwitchButton /></el-icon>
-        退出登录
-      </el-button>
-    </div>
-
     <!-- 流程步骤 -->
     <FlowSteps 
       :steps="steps" 
@@ -22,7 +9,7 @@
     
     <!-- 选择类型步骤 -->
     <div v-if="currentStep === 0" class="type-select-step">
-      <h2>请选择报销类型</h2>
+      
       <div class="type-cards">
         <el-card 
           v-for="type in reimbursementTypes" 
@@ -49,54 +36,98 @@
     
     <!-- 上传文件步骤 -->
     <div v-if="currentStep === 1" class="upload-step">
-      <h2>上传发票文件</h2>
       
       <!-- 报销事由输入 -->
-      <div class="reason-section">
-        <el-input
-          v-model="formReimbursementReason"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入报销事由（必填）"
-          maxlength="200"
-          show-word-limit
+      <el-form label-position="top" class="reason-form">
+        <el-form-item label="报销事由" required>
+          <el-input
+            v-model="formReimbursementReason"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入报销事由（必填）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      
+      <!-- 文件上传组件 - 放在待上传文件下方 -->
+      <div class="upload-section">
+        <FileUploader
+          v-model="selectedFiles"
+          :uploading="uploading"
+          :show-actions="false"
+          :show-stats="false"
+          :show-file-list="false"
+          upload-text="点击或拖拽文件到此处上传"
+          @upload="handleUpload"
+          @clear="clearSelectedFiles"
         />
       </div>
-      
-      <!-- 文件上传组件 -->
-      <FileUploader
-        v-model="selectedFiles"
-        :uploading="uploading"
-        :show-actions="false"
-        @upload="handleUpload"
-        @clear="clearSelectedFiles"
-      />
-      
-      <!-- 统一的上传统计和操作区域 -->
-      <div v-if="selectedFiles.length > 0" class="upload-controls">
+
+      <!-- 文件统计信息 -->
+      <div v-if="selectedFiles.length > 0" class="file-stats-section">
         <div class="stats-container">
           <el-tag type="info" size="large">总数量: {{ selectedFiles.length }}</el-tag>
-          <el-tag type="success" size="large">文档: {{ fileStats.documents }}</el-tag>
-          <el-tag type="warning" size="large">图片: {{ fileStats.images }}</el-tag>
-        </div>
-        <div class="actions-container">
-          <el-button 
-            @click="clearSelectedFiles"
-            size="large"
-          >
-            <el-icon><Delete /></el-icon>
-            清空
-          </el-button>
+          <el-tag type="success" size="large">有效文件: {{ selectedFiles.length }}</el-tag>
+          <el-tag type="warning" size="large">文档: {{ fileStats.documents }}</el-tag>
+          <el-tag type="primary" size="large">图片: {{ fileStats.images }}</el-tag>
         </div>
       </div>
-      
+
+      <!-- 统一的上传统计和操作区域 -->
+      <div v-if="selectedFiles.length > 0" class="pending-files-section">
+        <!-- 文件列表 -->
+        <div class="file-list-section">
+          <div 
+            v-for="(file, index) in selectedFiles" 
+            :key="getFileKey(file, index)"
+            class="file-item"
+          >
+            <div class="file-info">
+              <el-icon class="file-icon">
+                <component :is="getFileIcon(file)" />
+              </el-icon>
+              <div class="file-details">
+                <div class="file-name text-ellipsis" :title="file.name">
+                  {{ file.name }}
+                </div>
+                <div class="file-meta">
+                  <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                  <span class="file-type"> · {{ getFileTypeLabel(file) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="file-actions">
+              <el-button 
+                type="danger" 
+                size="small"
+                @click.stop="removeFile(index)"
+              >
+                删除
+              </el-button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+
+      <!-- 操作按钮区域 -->
       <div class="step-actions">
         <el-button @click="prevStep">上一步</el-button>
+        <el-button 
+          v-if="selectedFiles.length > 0"
+          @click="clearSelectedFiles"
+          size="large"
+        >
+          <el-icon><Delete /></el-icon>
+          清空
+        </el-button>
         <el-button 
           type="primary" 
           @click="handleUpload"
           :loading="uploading"
-          :disabled="selectedFiles.length === 0 || !formReimbursementReason.trim()"
+          :disabled="selectedFiles.length === 0"
         >
           {{ uploading ? '上传中...' : '确认上传' }}
         </el-button>
@@ -105,7 +136,31 @@
     
     <!-- 填写信息步骤 -->
     <div v-if="currentStep === 2" class="fill-form-step">
-      <h2>填写报销信息</h2>
+      
+      <!-- 信息部分切换标签 -->
+      <div v-if="formType === '客成差旅报销单'" class="info-sections-tabs">
+        <div 
+          class="section-tab"
+          :class="{ 'active': currentInfoSection === '出差申请' }"
+          @click="switchInfoSection('出差申请')"
+        >
+          出差申请
+        </div>
+        <div 
+          class="section-tab"
+          :class="{ 'active': currentInfoSection === '差旅报销' }"
+          @click="switchInfoSection('差旅报销')"
+        >
+          差旅报销
+        </div>
+        <div 
+          class="section-tab"
+          :class="{ 'active': currentInfoSection === '差旅补贴' }"
+          @click="switchInfoSection('差旅补贴')"
+        >
+          差旅补贴
+        </div>
+      </div>
       
       <!-- 报销信息表单 -->
       <el-form 
@@ -114,103 +169,9 @@
         label-position="top" 
         class="reimbursement-form"
       >
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="报销类型" prop="formType">
-              <div class="form-field-content">
-                <el-tag>{{ formTypeMap[reimbursementForm.formType] }}</el-tag>
-              </div>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="提交人员" prop="submitter">
-              <div class="form-field-content">
-                <el-input v-model="reimbursementForm.submitter" disabled />
-              </div>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="法人实体" prop="legalEntity" required>
-              <el-select 
-                v-model="reimbursementForm.legalEntity"
-                placeholder="请选择法人实体"
-              >
-                <el-option 
-                  v-for="entity in legalEntities" 
-                  :key="entity.value"
-                  :label="entity.label"
-                  :value="entity.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="报销日期" prop="reimbursementDate" required>
-              <el-date-picker
-                v-model="reimbursementForm.reimbursementDate"
-                type="date"
-                placeholder="选择日期"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="区域"  required>
-              <el-select
-                v-model="reimbursementForm.region"
-                placeholder="请选择区域"
-                @change="handleRegionChange"
-                style="width: 100%"
-              >
-                <el-option 
-                  v-for="region in regions" 
-                  :key="region"
-                  :label="region"
-                  :value="region"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="费用承担部门"  required>
-              <el-select
-                v-model="reimbursementForm.costDepartment"
-                placeholder="请选择部门"
-                @change="handleDepartmentChange"
-                style="width: 100%"
-              >
-                <el-option 
-                  v-for="dept in getDepartmentOptions()" 
-                  :key="dept.value"
-                  :label="dept.label"
-                  :value="dept.value"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-form-item label="报销事由" prop="formReimbursementReason" required>
-          <el-input
-            v-model="reimbursementForm.formReimbursementReason"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入报销事由"
-            maxlength="500"
-            show-word-limit
-          />
-        </el-form-item>
-        
-        <!-- 客成差旅特殊字段 -->
-        <div v-if="formType === '客成差旅报销单'" class="travel-section">
-          <el-divider>出差信息</el-divider>
+        <!-- 出差申请信息 -->
+        <div v-if="formType === '客成差旅报销单' && currentInfoSection === '出差申请'" class="travel-application-section">
+          <h3>出差信息</h3>
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="客户名称" prop="customerName">
@@ -283,8 +244,131 @@
               :value="calculatedTravelDays"
             />
           </el-form-item>
+        </div>
 
-          <!-- 出差补贴申请单开关 -->
+        <!-- 差旅报销信息 -->
+        <div v-if="formType === '客成差旅报销单' && currentInfoSection === '差旅报销'" class="travel-reimbursement-section">
+          <h3>填写报销信息</h3>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="报销类型" prop="formType">
+                <div class="form-field-content">
+                  <el-tag>{{ formTypeMap[reimbursementForm.formType] }}</el-tag>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="提交人员" prop="submitter">
+                <div class="form-field-content">
+                  <el-input v-model="reimbursementForm.submitter" disabled />
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="法人实体" prop="legalEntity" required>
+                <el-select 
+                  v-model="reimbursementForm.legalEntity"
+                  placeholder="请选择法人实体"
+                >
+                  <el-option 
+                    v-for="entity in legalEntities" 
+                    :key="entity.value"
+                    :label="entity.label"
+                    :value="entity.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="报销日期" prop="reimbursementDate" required>
+                <el-date-picker
+                  v-model="reimbursementForm.reimbursementDate"
+                  type="date"
+                  placeholder="选择日期"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="区域" required>
+                <el-select
+                  v-model="reimbursementForm.region"
+                  placeholder="请选择区域"
+                  @change="handleRegionChange"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="region in regions" 
+                    :key="region"
+                    :label="region"
+                    :value="region"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="费用承担部门" required>
+                <el-select
+                  v-model="reimbursementForm.costDepartment"
+                  placeholder="请选择部门"
+                  @change="handleDepartmentChange"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="dept in getDepartmentOptions()" 
+                    :key="dept.value"
+                    :label="dept.label"
+                    :value="dept.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-form-item label="报销事由" prop="formReimbursementReason" required>
+            <el-input
+              v-model="reimbursementForm.formReimbursementReason"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入报销事由"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+        </div>
+
+        <!-- 差旅补贴信息 -->
+        <div v-if="formType === '客成差旅报销单' && currentInfoSection === '差旅补贴'" class="travel-subsidy-section">
+          <h3>差旅补贴信息</h3>
+          <el-form-item label="出差天数">
+            <el-input 
+              v-model="reimbursementForm.travelDays" 
+              disabled
+              :value="calculatedTravelDays"
+            />
+          </el-form-item>
+          
+          <el-form-item label="每日补贴金额">
+            <el-input 
+              :value="`${reimbursementForm.dailySubsidyAmount || 100}元/天`" 
+              disabled 
+            />
+          </el-form-item>
+          
+          <el-form-item label="出差补贴金额合计">
+            <el-input 
+              :value="`${calculatedSubsidyAmount}元`" 
+              disabled
+            />
+          </el-form-item>
+
           <el-form-item label="出差补贴申请" prop="submitTravelSubsidy">
             <div class="travel-subsidy-switch">
               <el-switch
@@ -301,8 +385,106 @@
               </div>
             </div>
           </el-form-item>
-
         </div>
+
+        <!-- 日常报销基础信息 -->
+        <div v-if="formType === '日常报销单'" class="daily-reimbursement-section">
+          <h3>基础报销信息</h3>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="报销类型" prop="formType">
+                <div class="form-field-content">
+                  <el-tag>{{ formTypeMap[reimbursementForm.formType] }}</el-tag>
+                </div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="提交人员" prop="submitter">
+                <div class="form-field-content">
+                  <el-input v-model="reimbursementForm.submitter" disabled />
+                </div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="法人实体" prop="legalEntity" required>
+                <el-select 
+                  v-model="reimbursementForm.legalEntity"
+                  placeholder="请选择法人实体"
+                >
+                  <el-option 
+                    v-for="entity in legalEntities" 
+                    :key="entity.value"
+                    :label="entity.label"
+                    :value="entity.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="报销日期" prop="reimbursementDate" required>
+                <el-date-picker
+                  v-model="reimbursementForm.reimbursementDate"
+                  type="date"
+                  placeholder="选择日期"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="区域" required>
+                <el-select
+                  v-model="reimbursementForm.region"
+                  placeholder="请选择区域"
+                  @change="handleRegionChange"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="region in regions" 
+                    :key="region"
+                    :label="region"
+                    :value="region"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="费用承担部门" required>
+                <el-select
+                  v-model="reimbursementForm.costDepartment"
+                  placeholder="请选择部门"
+                  @change="handleDepartmentChange"
+                  style="width: 100%"
+                >
+                  <el-option 
+                    v-for="dept in getDepartmentOptions()" 
+                    :key="dept.value"
+                    :label="dept.label"
+                    :value="dept.value"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-form-item label="报销事由" prop="formReimbursementReason" required>
+            <el-input
+              v-model="reimbursementForm.formReimbursementReason"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入报销事由"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+        </div>
+
       </el-form>
       
       <!-- 发票信息列表 -->
@@ -324,49 +506,74 @@
           />
         </div>
         
+        <!-- 继续上传发票区域 -->
+        <div class="continue-upload-section">
 
-        <!-- 继续上传 -->
-        <div v-if="!showContinueUpload" class="continue-upload">
-          <el-button type="primary" @click="handleShowContinueUpload">
-            <el-icon><Plus /></el-icon>
-            继续上传发票
-          </el-button>
-        </div>
-
-        <!-- 继续上传界面 -->
-        <div v-if="showContinueUpload" class="continue-upload-section">
-          <h3>继续上传发票</h3>
-          
           <!-- 文件上传组件 -->
           <FileUploader
             v-model="continueUploadFiles"
             :uploading="continueUploading"
             :show-actions="false"
+            upload-text="点击或拖拽文件到此处继续上传"
             @upload="handleContinueUpload"
             @clear="clearContinueUploadFiles"
           />
-          
+
           <!-- 统一的上传统计和操作区域 -->
           <div v-if="continueUploadFiles.length > 0" class="upload-controls">
             <div class="stats-container">
-              <el-tag type="info" size="large">本次上传数量: {{ continueUploadFiles.length }}</el-tag>
-              <el-tag type="success" size="large">文档: {{ continueFileStats.documents }}</el-tag>
-              <el-tag type="warning" size="large">图片: {{ continueFileStats.images }}</el-tag>
-            </div>
-            <div class="actions-container">
-              <el-button 
-                @click="clearContinueUploadFiles"
-                size="large"
-              >
-                <el-icon><Delete /></el-icon>
-                清空
-              </el-button>
+              <el-tag type="info" size="large">总数量: {{ continueUploadFiles.length }}</el-tag>
+              <el-tag type="success" size="large">有效文件: {{ continueUploadFiles.length }}</el-tag>
+              <el-tag type="warning" size="large">文档: {{ continueFileStats.documents }}</el-tag>
+              <el-tag type="primary" size="large">图片: {{ continueFileStats.images }}</el-tag>
             </div>
           </div>
           
+          <!-- 文件列表 -->
+          <div v-if="continueUploadFiles.length > 0" class="pending-files-section">
+            <div class="file-list-section">
+              <div 
+                v-for="(file, index) in continueUploadFiles" 
+                :key="getFileKey(file, index)"
+                class="file-item"
+              >
+                <div class="file-info">
+                  <el-icon class="file-icon">
+                    <component :is="getFileIcon(file)" />
+                  </el-icon>
+                  <div class="file-details">
+                    <div class="file-name text-ellipsis" :title="file.name">
+                      {{ file.name }}
+                    </div>
+                    <div class="file-meta">
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                      <span class="file-type"> · {{ getFileTypeLabel(file) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <el-button 
+                    type="danger" 
+                    size="small"
+                    @click.stop="removeContinueFile(index)"
+                  >
+                    删除
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 继续上传操作按钮 -->
           <div class="continue-upload-actions">
-            <el-button @click="handleCancelContinueUpload">上一步</el-button>
+            <el-button 
+              v-if="continueUploadFiles.length > 0"
+              @click="clearContinueUploadFiles"
+              size="large"
+            >
+              <el-icon><Delete /></el-icon>
+              清空
+            </el-button>
             <el-button 
               type="primary" 
               @click="handleContinueUpload"
@@ -381,9 +588,26 @@
       
       <!-- 底部操作栏 -->
       <div class="bottom-actions">
-        <div class="total-amount">
-          <span class="label">总计金额：</span>
-          <span class="amount">{{ totalAmount }}</span>
+        <div class="action-row">
+          <div class="total-amount">
+            <span class="label">总计金额：</span>
+            <span class="amount">{{ totalAmount }}</span>
+          </div>
+          
+          <div class="step-actions">
+            <el-button @click="prevStep">上一步</el-button>
+            <el-button 
+              type="primary" 
+              :disabled="!canSubmit || hasSevereErrors"
+              :loading="submitting"
+              @click="submitReimbursement"
+            >
+              {{ submitting ? '提交中...' : '提交审批' }}
+            </el-button>
+          </div>
+
+          <!-- 占位元素，保持三列布局平衡 -->
+          <div class="spacer"></div>
         </div>
 
         <!-- 提交按钮区域 -->
@@ -407,23 +631,10 @@
               <span>有特殊票据需要人工审核</span>
             </div>
           </div>
-          
-          <div class="step-actions">
-            <el-button @click="prevStep">上一步</el-button>
-            <el-button 
-              type="primary" 
-              :disabled="!canSubmit || hasSevereErrors"
-              :loading="submitting"
-              @click="submitReimbursement"
-            >
-              {{ submitting ? '提交中...' : '提交审批' }}
-            </el-button>
-          </div>
         </div>
-
-
       </div>
-    </div>
+
+    </div>  
     
     <!-- 进度弹窗 -->
     <ProgressModal
@@ -458,7 +669,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAuthStore } from '../store/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -468,7 +679,8 @@ import {
   CircleCheck,
   OfficeBuilding,
   Timer,
-  SwitchButton  // 退出图标
+  SwitchButton,  // 退出图标
+  ArrowDown      // 下拉箭头图标
 } from '@element-plus/icons-vue'
 
 // API
@@ -480,11 +692,29 @@ import {
   getUserDepartmentInfo,
   getRegionByDepartment,
   type ReimbursementSubmitData,
+  type FileUploadResponse, // FileUploadResponse 类型导入
   type Department
 } from '../api'
 
 // 导入验证器
 import { validators } from '../utils/validators'
+
+import { extractTravelDatesFromReason } from '../utils/validators'
+
+// 点击外部关闭下拉菜单的自定义指令
+const vClickOutside = {
+  beforeMount(el: any, binding: any) {
+    el.clickOutsideEvent = function(event: Event) {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value()
+      }
+    }
+    document.addEventListener('click', el.clickOutsideEvent)
+  },
+  unmounted(el: any) {
+    document.removeEventListener('click', el.clickOutsideEvent)
+  }
+}
 
 // 类型定义
 interface InvoiceInfo {
@@ -500,6 +730,16 @@ interface InvoiceInfo {
   remark?: string
   consumptionReason?: string
   mediaId?: string
+  duplicateCheckResult?: DuplicateCheckResult  // 查重结果字段
+}
+
+interface DuplicateCheckResult {
+  duplicate: boolean
+  duplicateReason: string
+  invoiceNumber: string
+  invoiceDate: string
+  userId: string
+  checkStrategy: string
 }
 
 interface ValidationResult {
@@ -524,6 +764,19 @@ interface ReimbursementType {
 // 状态管理
 const authStore = useAuthStore()
 
+// 用户下拉菜单状态
+const showUserDropdown = ref(false)
+
+// 切换用户下拉菜单
+const toggleUserDropdown = () => {
+  showUserDropdown.value = !showUserDropdown.value
+}
+
+// 关闭用户下拉菜单
+const closeUserDropdown = () => {
+  showUserDropdown.value = false
+}
+
 // 响应式数据
 const currentStep = ref(0)
 const formType = ref('')
@@ -537,6 +790,9 @@ const submitSuccess = ref(false)
 const showProgressModal = ref(false)
 const formReimbursementReason = ref('') 
 
+// 当前显示的信息部分（出差申请、差旅报销、差旅补贴）
+const currentInfoSection = ref('差旅报销') // 默认显示差旅报销部分
+
 // 部门相关数据
 const departments = ref<Department[]>([])
 const departmentTree = ref<Department[]>([])
@@ -548,6 +804,9 @@ const continueUploadFiles = ref<File[]>([])
 const continueUploading = ref(false)
 const continueUploadReason = ref('')
 const uploadSessionId = ref('')
+
+// 清理逻辑
+const abortController = ref<AbortController | null>(null)
 
 const continueFileStats = computed(() => {
   const stats = { images: 0, documents: 0 }
@@ -566,10 +825,16 @@ const continueFileStats = computed(() => {
 const userAvatar = computed(() => {
   const userName = authStore.userName || authStore.userInfo?.name || ''
   if (userName) {
-    // 如果用户名包含中文字符，确保能正确显示
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}`
+    // 提取姓氏（第一个字符）确保只显示单字
+    const familyName = userName.charAt(0)
+    // 白底黑字配置：background=ffffff（白色），color=000000（黑色）
+    // 添加随机参数避免缓存
+    const timestamp = Date.now()
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(familyName)}&background=ffffff&color=000000&_t=${timestamp}`
   }
-  return 'https://api.dicebear.com/7.x/initials/svg?seed=User'
+  // 默认头像也使用白底黑字
+  const timestamp = Date.now()
+  return `https://api.dicebear.com/7.x/initials/svg?seed=User&background=ffffff&color=000000&_t=${timestamp}`
 })
 
 onMounted(() => {
@@ -579,6 +844,43 @@ onMounted(() => {
     reimbursementForm.region = authStore.userInfo.region || ''
     reimbursementForm.costDepartment = authStore.userInfo.departmentId || ''
   }
+})
+
+onUnmounted(() => {
+  // 取消所有未完成的API请求
+  if (abortController.value) {
+    abortController.value.abort()
+    abortController.value = null
+  }
+  
+  // 清理响应式数据
+  invoiceInfos.value = []
+  invoiceValidations.value = {}
+  selectedFiles.value = []
+  continueUploadFiles.value = []
+  departments.value = []
+  filteredDepartments.value = []
+  currentDepartmentPath.value = []
+  
+  // 重置表单数据 - 修复类型错误
+  const formKeys = Object.keys(reimbursementForm) as Array<keyof typeof reimbursementForm>
+  formKeys.forEach(key => {
+    if (key === 'submitTravelSubsidy') {
+      reimbursementForm[key] = true
+    } else if (key === 'dailySubsidyAmount') {
+      reimbursementForm[key] = 100 // 重置为默认值 100
+    } else {
+      reimbursementForm[key] = ''
+    }
+  })
+  
+  // 清理其他状态
+  formType.value = ''
+  formReimbursementReason.value = ''
+  uploadSessionId.value = ''
+  continueUploadReason.value = ''
+  
+  console.log('Reimbursement组件资源已清理')
 })
 
 // 退出登录处理
@@ -600,10 +902,15 @@ const handleLogout = async () => {
 
 // 步骤定义
 const steps = [
-  { title: '选择类型', icon: Document },
-  { title: '上传文件', icon: Money },
-  { title: '填写信息', icon: Timer }
+  { title: '选择报销类型', icon: Document },
+  { title: '上传发票文件', icon: Money },
+  { title: '确认报销信息', icon: Timer }
 ]
+
+// 切换信息部分的函数
+const switchInfoSection = (section: string) => {
+  currentInfoSection.value = section
+}
 
 // 报销类型映射
 const formTypeMap: Record<string, string> = {
@@ -627,7 +934,8 @@ const reimbursementForm = reactive({
   travelEndDate: '',
   travelEndPeriod: '下午',
   travelDays: '0',
-  submitTravelSubsidy: true // 出差补贴申请单开关，默认打开
+  submitTravelSubsidy: true, // 出差补贴申请单开关，默认打开
+  dailySubsidyAmount: 100 // 每日补贴金额字段，默认值为100
 })
 
 // 报销类型定义 - 修复类型错误
@@ -774,6 +1082,14 @@ const calculatedTravelDays = computed(() => {
   return totalDays.toFixed(1)
 })
 
+// 计算补贴金额
+const calculatedSubsidyAmount = computed(() => {
+  const days = parseFloat(calculatedTravelDays.value) || 0
+  const dailyAmount = reimbursementForm.dailySubsidyAmount || 100 // 使用动态的每日补贴金额
+  const amount = days * dailyAmount
+  return amount.toFixed(2)
+})
+
 // 计算提交状态
 const hasSevereErrors = computed(() => {
   return Object.values(invoiceValidations.value).some(validation => {
@@ -807,6 +1123,9 @@ const canSubmit = computed(() => {
   if (!reimbursementForm.region || !reimbursementForm.costDepartment) return false
   if (!reimbursementForm.formReimbursementReason?.trim()) return false
   
+  // 检查invoiceInfos是否为空
+  if (invoiceInfos.value.length === 0) return false
+
   // 检查发票信息完整性
   if (invoiceInfos.value.some(invoice => !invoice.reimbursementType || !invoice.totalAmount)) {
     return false
@@ -829,6 +1148,8 @@ const submitProgress = reactive({
   steps: [],
   message: ''
 })
+
+
 
 // 生命周期
 onMounted(async () => {
@@ -1178,6 +1499,7 @@ const handleUpload = async () => {
     return
   }
   
+  // 检查报销事由是否填写
   if (!formReimbursementReason.value.trim()) {
     ElMessage.warning('请输入报销事由')
     return
@@ -1187,6 +1509,27 @@ const handleUpload = async () => {
   
   try {
     reimbursementForm.formReimbursementReason = formReimbursementReason.value
+
+    // 如果是客成差旅报销单，从报销理由中提取出差日期
+    if (formType.value === '客成差旅报销单') {
+      const { startDate, endDate } = extractTravelDatesFromReason(formReimbursementReason.value)
+      
+      if (startDate && endDate) {
+        // 每次上传发票时都重新提取日期，确保日期与报销事由一致
+        reimbursementForm.travelStartDate = startDate
+        reimbursementForm.travelEndDate = endDate
+        // 同时设置开始和结束时段为上午
+        reimbursementForm.travelStartPeriod = '上午'
+        reimbursementForm.travelEndPeriod = '上午'
+        
+        // 显示提示信息
+        ElMessage.info(`已从报销理由中提取出差日期：${startDate} 至 ${endDate}`)
+      }else {
+        // 如果没有提取到有效日期，清空日期字段
+        reimbursementForm.travelStartDate = ''
+        reimbursementForm.travelEndDate = ''
+      }
+    }
 
     // 显示上传进度提示
     ElMessage.info('发票上传中，请稍候...（处理时间可能较长）')
@@ -1200,7 +1543,17 @@ const handleUpload = async () => {
     if (result.success) {
       // 处理返回的发票信息
       if (result.data?.invoiceInfos) {
-        const data = result.data
+                const data = result.data as {
+          invoiceInfos: InvoiceInfo[]
+          mediaIds?: string
+          validationResult?: {
+            results: Array<{
+              validationResult: ValidationResult
+              invoiceIndex?: number
+            }>
+          }
+          dailySubsidyAmount?: number 
+        }
 
         // 添加调试日志，确认后端返回的mediaIds
         console.log('后端返回的mediaIds:', data.mediaIds)
@@ -1209,6 +1562,12 @@ const handleUpload = async () => {
         // 将逗号分隔的mediaIds字符串分割成数组
         const mediaIdsArray = data.mediaIds ? data.mediaIds.split(',') : []
         console.log('分割后的mediaIds数组:', mediaIdsArray)
+
+        // 存储后端返回的每日补贴金额
+        if (data.dailySubsidyAmount) {
+          reimbursementForm.dailySubsidyAmount = data.dailySubsidyAmount
+          console.log('后端返回的每日补贴金额:', data.dailySubsidyAmount)
+        }
 
         invoiceInfos.value = data.invoiceInfos.map((invoice: any, index: number) => ({
           // 确保字段名正确映射
@@ -1223,6 +1582,8 @@ const handleUpload = async () => {
           reimbursementType: formType.value === '客成差旅报销单' ? '差旅成本' : (invoice.reimbursementType || ''),
           consumptionDate: invoice.invoiceDate || reimbursementForm.reimbursementDate,
           mediaId: invoice.mediaId || (mediaIdsArray[index] || ''),
+          // 查重结果
+          duplicateCheckResult: invoice.duplicateCheckResult || null,
           // 保留后端返回的其他字段
           ...invoice
         }))
@@ -1234,6 +1595,14 @@ const handleUpload = async () => {
               invoiceValidations.value[index] = item.validationResult
             }
           })
+        }
+
+        // 检查是否有重复发票并显示警告
+        const duplicateInvoices = invoiceInfos.value.filter(invoice => 
+          invoice.duplicateCheckResult?.duplicate
+        )
+        if (duplicateInvoices.length > 0) {
+          ElMessage.warning(`发现 ${duplicateInvoices.length} 张重复发票，请检查后提交`)
         }
       }
       
@@ -1254,9 +1623,66 @@ const handleUpload = async () => {
   }
 }
 
+// 文件操作相关函数
+const removeFile = (index: number) => {
+  if (index >= 0 && index < selectedFiles.value.length) {
+    const removedFile = selectedFiles.value[index]
+    // 添加空值检查
+    if (!removedFile) {
+      ElMessage.warning('文件不存在，无法删除')
+      return
+    }
+    selectedFiles.value.splice(index, 1)
+    ElMessage.success(`已删除文件: ${removedFile.name}`)
+  }
+}
+
 const clearSelectedFiles = () => {
-  selectedFiles.value = []
-  ElMessage.success('已清除文件')
+  if (selectedFiles.value.length > 0) {
+    ElMessageBox.confirm('确定要清空所有已选文件吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      selectedFiles.value = []
+      ElMessage.success('已清空所有文件')
+    }).catch(() => {
+      // 用户取消操作
+    })
+  }
+}
+
+// 文件工具函数
+const getFileKey = (file: File, index: number) => {
+  return `${file.name}-${file.size}-${file.lastModified}-${index}`
+}
+
+const getFileIcon = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  if (['jpg', 'jpeg', 'png'].includes(extension || '')) {
+    return 'Picture'
+  } else {
+    return 'Document'
+  }
+}
+
+const getFileTypeLabel = (file: File) => {
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  if (['jpg', 'jpeg', 'png'].includes(extension || '')) {
+    return '图片'
+  } else if (['pdf'].includes(extension || '')) {
+    return '文档'
+  } else {
+    return '其他'
+  }
+}
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 const calculateTravelDays = () => {
@@ -1307,6 +1733,32 @@ const handleContinueUpload = async () => {
     return
   }
   
+  // 检查是否有重复文件
+  const duplicateFiles: string[] = []
+  const validFiles: File[] = []
+  
+  continueUploadFiles.value.forEach(file => {
+    // 检查是否与已上传的文件重复
+    const isDuplicate = invoiceInfos.value.some(invoice => 
+      invoice.mediaId && file.name.includes(invoice.mediaId)
+    )
+    
+    if (isDuplicate) {
+      duplicateFiles.push(file.name)
+    } else {
+      validFiles.push(file)
+    }
+  })
+  
+  if (duplicateFiles.length > 0) {
+    ElMessage.warning(`以下文件已存在，已自动跳过: ${duplicateFiles.join(', ')}`)
+  }
+  
+  if (validFiles.length === 0) {
+    ElMessage.info('没有新的有效文件可以上传')
+    return
+  }
+
   continueUploading.value = true
   
   try {
@@ -1350,6 +1802,8 @@ const handleContinueUpload = async () => {
               reimbursementType: formType.value === '客成差旅报销单' ? '差旅成本' : (invoice.reimbursementType || ''),
               consumptionDate: invoice.invoiceDate || reimbursementForm.reimbursementDate,
               mediaId: invoice.mediaId || (data.mediaIds ? data.mediaIds.split(',')[index] : ''),
+              // 查重结果
+              duplicateCheckResult: invoice.duplicateCheckResult || null,
               ...invoice
             }))
             
@@ -1366,6 +1820,14 @@ const handleContinueUpload = async () => {
               })
             }
             
+            // 检查是否有重复发票并显示警告
+            const duplicateInvoices = newInvoices.filter((invoice: InvoiceInfo) => 
+              invoice.duplicateCheckResult?.duplicate
+            )
+            if (duplicateInvoices.length > 0) {
+              ElMessage.warning(`发现 ${duplicateInvoices.length} 张重复发票，请检查后提交`)
+            }
+
             ElMessage.success(`成功添加 ${newInvoices.length} 张发票`)
             
             // 上传完成后隐藏继续上传界面
@@ -1395,10 +1857,34 @@ const handleCancelContinueUpload = () => {
   continueUploadReason.value = ''
 }
 
-// 清空继续上传文件
+// 删除继续上传的单个文件
+const removeContinueFile = (index: number) => {
+  if (index >= 0 && index < continueUploadFiles.value.length) {
+    const removedFile = continueUploadFiles.value[index]
+    // 添加空值检查
+    if (!removedFile) {
+      ElMessage.warning('文件不存在，无法删除')
+      return
+    }
+    continueUploadFiles.value.splice(index, 1)
+    ElMessage.success(`已删除文件: ${removedFile.name}`)
+  }
+}
+
+// 清空继续上传的文件
 const clearContinueUploadFiles = () => {
-  continueUploadFiles.value = []
-  ElMessage.success('已清除本次上传文件')
+  if (continueUploadFiles.value.length > 0) {
+    ElMessageBox.confirm('确定要清空所有待上传文件吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      continueUploadFiles.value = []
+      ElMessage.success('已清空所有待上传文件')
+    }).catch(() => {
+      // 用户取消操作
+    })
+  }
 }
 
 const handleInvoiceDelete = async (index: number) => {
@@ -1438,9 +1924,11 @@ const submitReimbursement = async () => {
   const specialInvoices: number[] = []
   const limitExceededInvoices: number[] = []
   const dateExpiredInvoices: number[] = []
+  const duplicateInvoices: number[] = []  // 重复发票检查
   
   for (let i = 0; i < invoiceInfos.value.length; i++) {
     const validation = invoiceValidations.value[i]
+    const invoice = invoiceInfos.value[i]
     
     if (!validation) continue
     
@@ -1466,6 +1954,10 @@ const submitReimbursement = async () => {
     if (isInvoiceDateExpired(i)) {
       dateExpiredInvoices.push(i + 1)
     }
+    // 检查发票是否重复
+    if (invoice?.duplicateCheckResult?.duplicate) {
+      duplicateInvoices.push(i + 1)
+    }
   }
   
   // 真伪验证失败处理
@@ -1488,6 +1980,16 @@ const submitReimbursement = async () => {
     return
   }
   
+  // 重复发票处理
+  if (duplicateInvoices.length > 0) {
+    ElMessageBox.alert(
+      `发票 ${duplicateInvoices.join(', ')} 存在重复，请检查后再提交`,
+      '发票重复',
+      { type: 'error' }
+    )
+    return
+  }
+
   // 警告信息提示
   const warningMessages: string[] = []
   
@@ -1678,35 +2180,93 @@ const resetForm = () => {
   margin: 0 auto;
   padding: 0 20px;
   
-  // 用户信息和退出按钮
-  .user-info-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fff;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  // 用户下拉菜单
+  .user-dropdown-container {
+    position: relative;
+    display: inline-block;
     margin-bottom: 20px;
+    float: right;
     
-    .user-info {
+    .user-trigger {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: #f5f7fa;
+      }
       
       .user-name {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         color: #303133;
       }
+      
+      .dropdown-icon {
+        transition: transform 0.3s ease;
+        color: #909399;
+        
+        &.rotated {
+          transform: rotate(180deg);
+        }
+      }
     }
     
-    .logout-btn {
-      color: #909399;
-      font-size: 14px;
+    .user-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      margin-top: 4px;
+      min-width: 200px;
       
-      &:hover {
-        color: #f56c6c;
+      .dropdown-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        
+        .user-details {
+          flex: 1;
+          
+          .user-display-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #303133;
+            margin-bottom: 4px;
+          }
+          
+          .user-department {
+            font-size: 12px;
+            color: #909399;
+          }
+        }
+      }
+      
+      .dropdown-actions {
+        padding: 8px 0;
+        
+        .logout-btn {
+          width: 100%;
+          justify-content: flex-start;
+          padding: 8px 16px;
+          color: #909399;
+          font-size: 14px;
+          
+          &:hover {
+            color: #f56c6c;
+            background: #fef0f0;
+          }
+        }
       }
     }
   }
@@ -1948,30 +2508,141 @@ const resetForm = () => {
       font-size: 24px;
       font-weight: 600;
     }
-    
-    .reason-section {
-      margin-bottom: 30px;
-    }
-    
-    .upload-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 20px 0;
-      padding: 15px;
-      background: #f9fafc;
-      border-radius: 6px;
       
-      .stats-container {
-        display: flex;
-        gap: 10px;
+    .reason-form {
+        margin-bottom: 20px;
         
-        .el-tag {
-          font-size: 14px;
+        :deep(.el-form-item) {
+          margin-bottom: 0;
+          
+          .el-form-item__label {
+            font-weight: 600;
+            
+            &::before {
+              content: '*';
+              color: #f56c6c;
+              margin-right: 4px;
+            }
+          }
+          
+          .el-textarea {
+            width: 100%;
+            
+            .el-textarea__inner {
+              width: 100%;
+            }
+          }
+        }
+    }
+
+    // 文件列表样式
+    .file-list-section {
+      margin: 0;
+      
+      .file-item {
+        display: flex;
+        align-items: center;
+        
+        padding: 12px 16px;
+        border-bottom: 1px solid #e4e7ed;
+        background: #ffffff;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        &:hover {
+          background: #f5f7fa;
+        }
+        
+        .file-info {
+          display: flex;
+          align-items: center;
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          
+          
+          .file-icon {
+            font-size: 24px;
+            color: #409eff;
+            margin-right: 12px;
+            flex-shrink: 0;
+          }
+          
+          .file-details {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            
+            .file-name {
+              font-size: 14px;
+              font-weight: 500;
+              color: #303133;
+              margin-bottom: 4px;
+              line-height: 1.4;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              text-align: left;
+            }
+            
+            .file-meta {
+              font-size: 12px;
+              color: #909399;
+              line-height: 1.4;
+              text-align: left;
+              
+              .file-size {
+                margin-right: 4px;
+              }
+            }
+          }
+        }
+        
+        .file-actions {
+          flex-shrink: 0;
+          margin-left: 12px;
+          display: flex;
+          align-items: center;
+
+          /* 确保按钮元素本身没有影响布局的样式 */
+          .el-button,
+          .delete-btn {
+            flex-shrink: 0; /* 防止按钮被压缩 */
+            white-space: nowrap; /* 防止按钮文字换行 */
+          }
         }
       }
     }
-    
+
+    // 待上传文件区域样式
+    .pending-files-section {
+      margin: 20px 0;
+      border: 1px solid #e4e7ed;
+      border-radius: 6px;
+      background: #f9fafc;
+      padding: 16px;
+    }
+
+    // 上传区域
+    .upload-section {
+      margin-bottom: 20px;
+      
+      // 调整文件上传框宽度与报销理由输入框一致
+      :deep(.file-uploader) {
+        .upload-area {
+          width: 100%;
+          max-width: 100%;
+          
+          // 确保与报销理由输入框宽度一致
+          .el-textarea__inner {
+            width: 100%;
+          }
+        }
+      }
+    }
+
     .step-actions {
       display: flex;
       justify-content: center;
@@ -2030,6 +2701,13 @@ const resetForm = () => {
     .invoice-list {
       margin: 30px 0;
       
+      h3 {
+        margin-bottom: 10px; /* 增加标题与列表之间的间距 */
+        color: #303133;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
       .invoice-item {
         background: #f9fafc;
         border-radius: 6px;
@@ -2315,6 +2993,42 @@ const resetForm = () => {
         font-size: 18px;
       }
     }
+
+    // 确保在窄屏幕下文件列表布局正确
+    .file-list-section .file-item,
+    .continue-upload-section .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      
+      .file-info {
+        flex: 1;
+        min-width: 0;
+        margin-right: auto; /* 强制文件信息靠左 */
+        
+        .file-details {
+          min-width: 0;
+          
+          .file-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: left;
+          }
+
+          .file-meta {
+            text-align: left;
+          }
+        }
+      }
+      
+      .file-actions {
+        flex-shrink: 0;
+        margin-left: 8px;
+      }
+    }
+
   }
 }
 
@@ -2354,6 +3068,71 @@ const resetForm = () => {
     margin-bottom: 15px;
     color: #303133;
   }
+
+      .file-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e4e7ed;
+      background: #ffffff;
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      &:hover {
+        background: #f5f7fa;
+      }
+      
+      .file-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        
+        .file-icon {
+          font-size: 24px;
+          color: #409eff;
+          margin-right: 12px;
+          flex-shrink: 0;
+        }
+        
+        .file-details {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          
+          .file-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #303133;
+            margin-bottom: 4px;
+            line-height: 1.4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: left;
+          }
+          
+          .file-meta {
+            font-size: 12px;
+            color: #909399;
+            line-height: 1.4;
+            text-align: left;
+            
+            .file-size {
+              margin-right: 4px;
+            }
+          }
+        }
+      }
+      
+      .file-actions {
+        flex-shrink: 0;
+        margin-left: 12px;
+      }
+    }
 }
 
 // 继续上传按钮居中
@@ -2369,16 +3148,147 @@ const resetForm = () => {
   }
 }
 
+// 底部操作栏样式
+.bottom-actions {
+  margin-top: 30px;
+ 
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    .total-amount {
+      font-size: 18px;
+      font-weight: 500;
+      justify-self: start;
+      
+      .label {
+        color: #606266;
+      }
+      
+      .amount {
+        color: #f56c6c;
+        font-size: 24px;
+      }
+    }
+    
+    .step-actions {
+      display: flex;
+      gap: 15px;
+      justify-self: center;
+      
+      .el-button {
+        min-width: 120px;
+        height: 40px;
+        font-size: 14px;
+      }
+    }
+
+    // 占位元素，保持三列布局平衡
+    .spacer {
+      justify-self: end;
+    }
+  }
+  
+  //底部蓝色框
+  .submit-section {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    
+    .submit-info {
+      text-align: center;
+      
+      .submit-error,
+      .submit-warning,
+      .submit-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        
+        .el-icon {
+          font-size: 16px;
+        }
+      }
+      
+      .submit-error {
+        background: #fef0f0;
+        color: #f56c6c;
+        border: 1px solid #fbc4c4;
+      }
+      
+      .submit-warning {
+        background: #fdf6ec;
+        color: #e6a23c;
+        border: 1px solid #f5dab1;
+      }
+      
+      .submit-info {
+        background: #f0f9ff;
+        color: #409eff;
+        border: 1px solid #bae0ff;
+      }
+    }
+  }
+}
+
 // 继续上传操作按钮居中
 .continue-upload-actions {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
+  gap: 15px;
+  margin-top: 20px;
   
   .el-button {
-    min-width: 120px;
+    min-width: 100px;
+    height: 36px;
   }
+}
+
+// 文本溢出处理
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .bottom-actions {
+    .action-row {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      text-align: center;
+      
+      .total-amount {
+        order: 1;
+        font-size: 16px;
+        justify-self: center;
+        
+        .amount {
+          font-size: 20px;
+        }
+      }
+      
+      .step-actions {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .spacer {
+        display: none;
+      }
+    }
+  }
+  
 }
 
 // 提交区域
@@ -2412,5 +3322,69 @@ const resetForm = () => {
   gap: 10px;
   justify-content: center;
   margin: 20px 0;
+}
+
+.info-sections-tabs {
+  display: flex;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.section-tab {
+  flex: 1;
+  padding: 12px 16px;
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: #606266;
+}
+
+.section-tab:hover {
+  color: #409eff;
+  background-color: #f5f7fa;
+}
+
+.section-tab.active {
+  color: #409eff;
+  border-bottom-color: #409eff;
+  background-color: #ecf5ff;
+}
+
+/* 信息部分内容样式 */
+.travel-application-section,
+.travel-reimbursement-section,
+.travel-subsidy-section {
+  margin-bottom: 24px;
+}
+
+.travel-application-section h3,
+.travel-reimbursement-section h3,
+.travel-subsidy-section h3 {
+  margin-bottom: 16px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 补贴金额显示样式 */
+.travel-subsidy-section .el-input.is-disabled {
+  background-color: #f5f7fa;
+  color: #606266;
+}
+
+.travel-subsidy-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.switch-description {
+  flex: 1;
+}
+
+.switch-description small {
+  color: #909399;
 }
 </style>

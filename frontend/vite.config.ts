@@ -35,11 +35,11 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 3250,
     host: '0.0.0.0', // 允许外部IP访问
     proxy: {
       '/api': {
-        target: 'https://try2-edu.fit2cloud.cn', // 后端地址
+        target: 'http://localhost:8888', // 后端地址  
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path

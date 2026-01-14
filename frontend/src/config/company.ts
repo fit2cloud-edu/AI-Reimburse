@@ -23,15 +23,15 @@ export interface CompanyConfig {
 // 公司配置信息
 export const companyConfig: CompanyConfig = {
   wechatWork: {
-    corpId: '',
-    agentId: '',
-    redirectUri: '',
-    state: ''
+    corpId: '(例：wwXXXXXXXX)', // 企业CorpID
+    agentId: '100000X', // 应用AgentID
+    redirectUri: '后端地址/api/wechat-login', // 后端回调地址
+    state: 'WWLogin' // 防CSRF攻击状态参数  
   },
   
   domains: {
-    production: '',
-    development: ''
+    production: 'http://localhost:8080',
+    development: '后端地址' // 开发环境域名
   }
   
 };
